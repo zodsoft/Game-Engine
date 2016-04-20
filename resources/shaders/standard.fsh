@@ -1,5 +1,7 @@
 #version 330 core
 
+#define MAX_POINT_LIGHTS 10
+
 struct Material {
 	sampler2D diffuse;
 	sampler2D specular;
@@ -29,7 +31,8 @@ out vec4 color;
 
 uniform Material material;
 uniform DirectionalLight dirLight;
-uniform PointLight[2] pointLights;
+uniform int pointLightCount;
+uniform PointLight[MAX_POINT_LIGHTS] pointLights;
 uniform vec3 ambient;
 
 vec3 calcDirectionalLight(DirectionalLight light, vec3 diffuseTex, vec3 specularTex) {
@@ -74,6 +77,15 @@ void main() {
 	vec3 specularTex = texture(material.specular, texCoord).rgb;
 
 	vec3 ambientColor = ambient * diffuseTex;
+
+	//vec3 lightCombined = calcPointLight(pointLights[0], diffuseTex, specularTex);
+	vec3 lightCombined = vec3(0, 0, 0);
+
+	for (int i = 0; i < pointLightCount; i++) {
+		if (i < MAX_POINT_LIGHTS) {
+			lightCombined += calcPointLight(pointLights[i], diffuseTex, specularTex);
+		}
+	}
 	
-    color = vec4(ambientColor + calcPointLight(pointLights[0], diffuseTex, specularTex) + calcPointLight(pointLights[1], diffuseTex, specularTex), 1.0f);
+    color = vec4(ambientColor + lightCombined, 1.0f);
 }
