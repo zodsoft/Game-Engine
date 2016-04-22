@@ -1,6 +1,6 @@
 #version 330 core
 
-#define MAX_POINT_LIGHTS 10
+#define MAX_POINT_LIGHTS 100
 
 struct Material {
 	sampler2D diffuse;
