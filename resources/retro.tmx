@@ -149,7 +149,7 @@
   <object id="22" x="608" y="160" width="16" height="64"/>
   <object id="23" x="592" y="192" width="16" height="32"/>
  </objectgroup>
- <objectgroup name="Object Layer" visible="0">
+ <objectgroup name="Object Layer">
   <object id="31" gid="23" x="288" y="176" width="16" height="16"/>
   <object id="32" gid="23" x="352" y="144" width="16" height="16"/>
  </objectgroup>
