@@ -27,13 +27,16 @@ in vec3 fragNormal;
 in vec3 fragPos;
 in vec3 viewPos;
 
-out vec4 color;
+layout (location = 0) out vec4 color;
+layout (location = 1) out vec4 brightColor;
 
 uniform Material material;
 uniform DirectionalLight dirLight;
 uniform int pointLightCount;
 uniform PointLight[MAX_POINT_LIGHTS] pointLights;
 uniform vec3 ambient;
+uniform vec3 cameraPos;
+uniform samplerCube skybox;
 
 vec3 calcDirectionalLight(DirectionalLight light, vec3 diffuseTex, vec3 specularTex) {
 	//diffuse
@@ -66,7 +69,7 @@ vec3 calcPointLight(PointLight light, vec3 diffuseTex, vec3 specularTex) {
 	vec3 viewDir = normalize(viewPos - fragPos);
 	vec3 reflectDir = reflect(-lightDir, norm);
 	float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-	vec3 specular = spec * light.color * specularTex * diff;  
+	vec3 specular = spec * light.color * specularTex * diff; 
 	
     vec3 result = (diffuse + specular) * attenuation;
     return result;
@@ -86,6 +89,12 @@ void main() {
 			lightCombined += calcPointLight(pointLights[i], diffuseTex, specularTex);
 		}
 	}
+
+    //color = vec4(reflectcolor, 1.0f);
+
+    vec3 I = normalize(fragPos - cameraPos);
+    vec3 R = reflect(I, normalize(fragNormal));
+    vec3 reflectColor = texture(skybox, R).rgb; 
 	
-    color = vec4(ambientColor + lightCombined, 1.0f);
+    color = vec4(mix(ambientColor + lightCombined, reflectColor, 0.1f), 1.0f);
 }
