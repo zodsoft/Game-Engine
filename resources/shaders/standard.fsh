@@ -96,5 +96,12 @@ void main() {
     vec3 R = reflect(I, normalize(fragNormal));
     vec3 reflectColor = texture(skybox, R).rgb; 
 	
-    color = vec4(mix(ambientColor + lightCombined, reflectColor, 0.1f), 1.0f);
+    color = vec4(ambientColor + lightCombined, 1.0f);
+
+    // Check whether fragment output is higher than threshold, if so output as brightness color
+    float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+    if(brightness > 1.5)
+        brightColor = vec4(color.rgb, 1.0);
+    else
+    	brightColor = vec4(0, 0, 0, 1.0);
 }
