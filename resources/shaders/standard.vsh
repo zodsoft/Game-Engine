@@ -18,7 +18,7 @@ void main() {
 	
 	fragPos = vec3(model * vec4(position, 1.0f));
 	fragNormal = mat3(transpose(inverse(model))) * normal;
-	texCoord = uv;
+	texCoord = vec2(uv.x, 1 - uv.y);
 	
 	viewPos = vec3(view[0][3], view[1][3], view[2][3]);
 }

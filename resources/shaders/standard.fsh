@@ -78,6 +78,10 @@ vec3 calcPointLight(PointLight light, vec3 diffuseTex, vec3 specularTex) {
 void main() {
 	vec3 diffuseTex = texture(material.diffuse, texCoord).rgb;
 	vec3 specularTex = texture(material.specular, texCoord).rgb;
+	
+
+	//diffuseTex = vec3(0.5, 0.7, 0.3);
+	//specularTex = vec3(0.5, 0.5, 0.5);
 
 	vec3 ambientColor = ambient * diffuseTex;
 
