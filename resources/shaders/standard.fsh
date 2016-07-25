@@ -97,10 +97,6 @@ void main() {
 		specularTex = material.specularColor;
 	}
 	
-
-	//diffuseTex = vec3(0.5, 0.7, 0.3);
-	//specularTex = vec3(0.5, 0.5, 0.5);
-
 	vec3 ambientColor = ambient * diffuseTex;
 
 	//vec3 lightCombined = calcPointLight(pointLights[0], diffuseTex, specularTex);
@@ -116,9 +112,12 @@ void main() {
 
     vec3 I = normalize(fragPos - cameraPos);
     vec3 R = reflect(I, normalize(fragNormal));
-    vec3 reflectColor = specularTex * lightCombined ;
+    vec3 reflectColor = texture(skybox, R).rgb;
+
+    //diffuseTex = mix(diffuseTex, reflectColor, clamp((length(specularTex * 2)), 0, 1));
 	
-    color = vec4(ambientColor + (lightCombined * diffuseTex), 1.0f);
+    color = vec4((ambient * diffuseTex) + (lightCombined * diffuseTex), 1.0f);
+    //color = vec4(reflectColor, 1.0f);
 
     // Check whether fragment output is higher than threshold, if so output as brightness color
     float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
