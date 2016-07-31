@@ -40,9 +40,10 @@ uniform Material material;
 uniform DirectionalLight dirLight;
 uniform int pointLightCount;
 uniform PointLight[MAX_POINT_LIGHTS] pointLights;
-uniform vec3 ambient;
+uniform float ambient;
 uniform vec3 cameraPos;
 uniform samplerCube skybox;
+uniform float exposure;
 
 vec3 calcDirectionalLight(DirectionalLight light, vec3 diffuseTex, vec3 specularTex) {
 	//diffuse
@@ -68,17 +69,17 @@ vec3 calcPointLight(PointLight light, vec3 diffuseTex, vec3 specularTex) {
 	//diffuse
 	vec3 norm = normalize(fragNormal);
 	vec3 lightDir = normalize(light.position - fragPos);
-	float diff = max(dot(norm, lightDir), 0.0);
-	vec3 diffuse = light.color * (diff * diffuseTex);
+	float diff = max(dot(norm, lightDir), ambient);
+	vec3 diffuse = light.color * diff;
 	
 	//specular
 	vec3 viewDir = normalize(viewPos - fragPos);
 	vec3 reflectDir = reflect(-lightDir, norm);
 	float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-	vec3 specular = spec * light.color * specularTex * diff; 
+	vec3 specular = spec * light.color * specularTex; 
 	
     vec3 result = (diffuse + specular) * attenuation;
-    return light.color * diff * attenuation;
+    return result;
 }
 
 void main() {
@@ -96,8 +97,6 @@ void main() {
 	} else {
 		specularTex = material.specularColor;
 	}
-	
-	vec3 ambientColor = ambient * diffuseTex;
 
 	//vec3 lightCombined = calcPointLight(pointLights[0], diffuseTex, specularTex);
 	vec3 lightCombined = vec3(0, 0, 0);
@@ -116,12 +115,12 @@ void main() {
 
     //diffuseTex = mix(diffuseTex, reflectColor, clamp((length(specularTex * 2)), 0, 1));
 	
-    color = vec4((ambient * diffuseTex) + (lightCombined * diffuseTex), 1.0f);
+    color = vec4(lightCombined * diffuseTex, 1.0f);
     //color = vec4(reflectColor, 1.0f);
 
     // Check whether fragment output is higher than threshold, if so output as brightness color
     float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
-    if(brightness > 1.5)
+    if(brightness > 1.5 / exposure)
         brightColor = vec4(color.rgb, 1.0);
     else
     	brightColor = vec4(0, 0, 0, 1.0);
