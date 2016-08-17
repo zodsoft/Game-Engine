@@ -22,7 +22,7 @@ struct DirectionalLight {
 struct PointLight {
     vec3 position;
     vec3 color;
-    
+
     float linear;
     float quadratic;
 };
@@ -44,6 +44,7 @@ uniform float ambient;
 uniform vec3 cameraPos;
 uniform samplerCube skybox;
 uniform float exposure;
+uniform vec3 eyePos;
 
 vec3 calcDirectionalLight(DirectionalLight light, vec3 diffuseTex, vec3 specularTex) {
 	//diffuse
@@ -51,36 +52,39 @@ vec3 calcDirectionalLight(DirectionalLight light, vec3 diffuseTex, vec3 specular
 	vec3 lightDir = normalize(-light.direction);
 	float diff = max(dot(norm, lightDir), 0.0);
 	vec3 diffuse = light.color * (diff * diffuseTex);
-	
+
 	//specular
-	vec3 viewDir = normalize(viewPos - fragPos);
+	vec3 viewDir = normalize(eyePos - fragPos);
 	vec3 reflectDir = reflect(-lightDir, norm);
 	float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-	vec3 specular = spec * light.color * specularTex * diff;  
-	
+	vec3 specular = spec * light.color * specularTex * diff;
+
     vec3 result = (diffuse + specular);
     return result;
 }
 
 vec3 calcPointLight(PointLight light, vec3 diffuseTex, vec3 specularTex) {
 	float distance = length(light.position - fragPos);
-	float attenuation = 1.0f / (1.0f + light.linear * distance + light.quadratic * (distance * distance));    
-	
+	float attenuation = 1.0f / (1.0f + light.linear * distance + light.quadratic * (distance * distance));
+
 	//diffuse
 	vec3 norm = normalize(fragNormal);
 	vec3 lightDir = normalize(light.position - fragPos);
 	float diff = max(dot(norm, lightDir), ambient);
 	vec3 diffuse = light.color * diff;
-	
+
 	//specular
 	vec3 viewDir = normalize(viewPos - fragPos);
 	vec3 reflectDir = reflect(-lightDir, norm);
 	float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-	vec3 specular = spec * light.color * specularTex; 
-	
+	vec3 specular = spec * light.color * specularTex;
+
     vec3 result = (diffuse + specular) * attenuation;
     return result;
 }
+
+const float blurSizeH = 1.0 / 300.0;
+const float blurSizeV = 1.0 / 200.0;
 
 void main() {
 	vec3 diffuseTex = vec3(0, 0, 0);
@@ -109,12 +113,12 @@ void main() {
 
     //color = vec4(reflectcolor, 1.0f);
 
-    vec3 I = normalize(fragPos - cameraPos);
+    vec3 I = normalize(fragPos - eyePos);
     vec3 R = reflect(I, normalize(fragNormal));
     vec3 reflectColor = texture(skybox, R).rgb;
 
     //diffuseTex = mix(diffuseTex, reflectColor, clamp((length(specularTex * 2)), 0, 1));
-	
+
     color = vec4(lightCombined * diffuseTex, 1.0f);
     //color = vec4(reflectColor, 1.0f);
 
