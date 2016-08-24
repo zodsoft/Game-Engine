@@ -186,9 +186,10 @@ void main() {
   vec3 R = reflect(I, normalize(fragNormal));
   vec3 reflectColor = texture(skybox, R).rgb;
 
-  //diffuseTex = mix(diffuseTex, reflectColor, clamp((length(specularTex * 2)), 0, 1));
+  diffuseTex = mix(diffuseTex, reflectColor, clamp((length(specularTex)), 0, 1));
 
   color = vec4(lightCombined * diffuseTex, 1.0f);
+  //color = vec4(specularTex, 1.0f);
   //color = vec4(calcDirectionalLight(dirLight, diffuseTex, specularTex), 1.0f);
 
   // Check whether fragment output is higher than threshold, if so output as brightness color
