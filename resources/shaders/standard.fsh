@@ -80,7 +80,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     //float closestDepth = texture(shadowMap, vec3(fragPosLightSpace.xy, (fragPosLightSpace.z)/fragPosLightSpace.w-0.0005));
     // Get depth of current fragment from light's perspective
 	float visibility = 1.0;
-	float bias = 0.0009;
+	float bias = 0.001;
 
 	for (int i=0;i<4;i++){
 		// use either :
@@ -96,8 +96,9 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 
 		// being fully in the shadow will eat up 4*0.2 = 0.8
 		// 0.2 potentially remain, which is quite dark.
-		visibility -= 0.2*(1.0-texture( shadowMap, vec3(fragPosLightSpace.xy + poissonDisk[index]/5000.0, (fragPosLightSpace.z)/fragPosLightSpace.w-bias) ));
+		visibility -= 0.2*(1.0-texture( shadowMap, vec3(fragPosLightSpace.xy + poissonDisk[index]/3000.0, (fragPosLightSpace.z)/fragPosLightSpace.w-bias) ));
 	}
+	//visibility = texture(shadowMap, vec3(fragPosLightSpace.xy, (fragPosLightSpace.z)/fragPosLightSpace.w-bias));
 
 	/*if(projCoords.z > 1.0)
         shadow = 0.0;
