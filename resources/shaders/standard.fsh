@@ -7,6 +7,9 @@ struct Material {
 	vec3 diffuseColor;
 	bool diffuseTextured;
 
+	sampler2D normal;
+	bool normalTextured;
+
 	sampler2D specular;
 	vec3 specularColor;
 	bool specularTextured;
@@ -33,9 +36,14 @@ in vec3 fragNormal;
 in vec3 fragPos;
 in vec3 viewPos;
 in vec4 fragPosLightSpace;
+in vec3 T;
+in vec3 B;
+in vec3 N;
+in vec3 fragTangent;
 
 layout (location = 0) out vec4 color;
 layout (location = 1) out vec4 brightColor;
+layout (location = 2) out vec4 hdrColor;
 
 uniform Material material;
 uniform DirectionalLight dirLight;
@@ -80,7 +88,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
     //float closestDepth = texture(shadowMap, vec3(fragPosLightSpace.xy, (fragPosLightSpace.z)/fragPosLightSpace.w-0.0005));
     // Get depth of current fragment from light's perspective
 	float visibility = 1.0;
-	float bias = 0.001;
+	float bias = 0.002;
 
 	for (int i=0;i<4;i++){
 		// use either :
@@ -108,11 +116,11 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 	return visibility;
 }
 
-vec3 calcDirectionalLight(DirectionalLight light, vec3 diffuseTex, vec3 specularTex) {
+vec3 calcDirectionalLight(DirectionalLight light, vec3 diffuseTex, vec3 specularTex, vec3 normal) {
 	float shadow = ShadowCalculation(fragPosLightSpace);
 
 	//diffuse
-	vec3 norm = normalize(fragNormal);
+	vec3 norm = normalize(normal);
 	vec3 lightDir = normalize(-light.direction);
 	float diff = max(dot(norm, lightDir), 0.0);
 	vec3 diffuse = light.color * diff * shadow;
@@ -127,12 +135,12 @@ vec3 calcDirectionalLight(DirectionalLight light, vec3 diffuseTex, vec3 specular
     return result;
 }
 
-vec3 calcPointLight(PointLight light, vec3 diffuseTex, vec3 specularTex) {
+vec3 calcPointLight(PointLight light, vec3 diffuseTex, vec3 specularTex, vec3 normal) {
 	float distance = length(light.position - fragPos);
 	float attenuation = 1.0f / (1.0f + light.linear * distance + light.quadratic * (distance * distance));
 
 	//diffuse
-	vec3 norm = normalize(fragNormal);
+	vec3 norm = normalize(normal);
 	vec3 lightDir = normalize(light.position - fragPos);
 	float diff = max(dot(norm, lightDir), 0.0f);
 	vec3 diffuse = light.color * diff;
@@ -147,12 +155,17 @@ vec3 calcPointLight(PointLight light, vec3 diffuseTex, vec3 specularTex) {
     return result;
 }
 
+float luma(vec3 color) {
+	    return 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
+}
+
 const float blurSizeH = 1.0 / 300.0;
 const float blurSizeV = 1.0 / 200.0;
 
 void main() {
 	vec3 diffuseTex = vec3(0, 0, 0);
 	vec3 specularTex = vec3(0, 0, 0);
+	vec3 normalTex = vec3(0, 0, 0);
 
 	if (material.diffuseTextured) {
 		diffuseTex = texture(material.diffuse, texCoord).rgb;
@@ -166,17 +179,31 @@ void main() {
 		specularTex = material.specularColor;
 	}
 
+	if (material.normalTextured) {
+		//normalTex = normalize(texture(material.normal, texCoord).rbg * 2.0 - 1.0);
+
+		mat3 TBN = mat3(T, B, N);
+
+		normalTex = texture(material.normal, texCoord).rgb;
+		normalTex = normalize(normalTex * 2.0 - 1.0);
+		normalTex = normalize(TBN * normalTex);
+
+		//normalTex = TBN[0];
+	} else {
+		normalTex = fragNormal;
+	}
+
 	//vec3 lightCombined = calcPointLight(pointLights[0], diffuseTex, specularTex);
 	vec3 lightCombined = vec3(0, 0, 0);
 
 	for (int i = 0; i < pointLightCount; i++) {
 		if (i < MAX_POINT_LIGHTS) {
-			lightCombined += calcPointLight(pointLights[i], diffuseTex, specularTex);
+			lightCombined += calcPointLight(pointLights[i], diffuseTex, specularTex, normalTex);
 		}
 	}
 
 	float shadow = ShadowCalculation(fragPosLightSpace);
-	lightCombined += calcDirectionalLight(dirLight, diffuseTex, specularTex);
+	lightCombined += calcDirectionalLight(dirLight, diffuseTex, specularTex, normalTex);
 
 	lightCombined = clamp(lightCombined, ambient, 100.0f);
 
@@ -184,13 +211,13 @@ void main() {
   //color = vec4(reflectcolor, 1.0f);
 
   vec3 I = normalize(fragPos - eyePos);
-  vec3 R = reflect(I, normalize(fragNormal));
+  vec3 R = reflect(I, normalize(normalTex));
   vec3 reflectColor = texture(skybox, R).rgb;
 
   diffuseTex = mix(diffuseTex, reflectColor, clamp((length(specularTex)), 0, 1));
 
   color = vec4(lightCombined * diffuseTex, 1.0f);
-  //color = vec4(specularTex, 1.0f);
+  //color = vec4(normalTex, 1.0f);
   //color = vec4(calcDirectionalLight(dirLight, diffuseTex, specularTex), 1.0f);
 
   // Check whether fragment output is higher than threshold, if so output as brightness color
@@ -199,4 +226,9 @@ void main() {
   	brightColor = vec4(color.rgb, 1.0);
   else
 	brightColor = vec4(0, 0, 0, 1.0);
+
+	float lumaThresh = 0.8;
+	brightColor = vec4(color.rgb * clamp( luma(color.rgb) - lumaThresh, 0.0, 1.0 ) * (1.0 / (1.0 - lumaThresh)), 1.0);
+
+	hdrColor = vec4(0, 0, 0, 1.0);
 }
