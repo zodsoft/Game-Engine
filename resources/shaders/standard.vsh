@@ -14,9 +14,18 @@ out vec3 T;
 out vec3 B;
 out vec3 N;
 
+struct DirectionalLight {
+    vec3 direction;
+    vec3 color;
+
+	bool hasShadowMap;
+	sampler2DShadow shadowMap;
+};
+
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
+uniform DirectionalLight dirLight;
 uniform mat4 lightSpace;
 
 uniform vec3 eyePos;
@@ -32,13 +41,15 @@ void main() {
     N = normalize(vec3(model * vec4(normal,    0.0)));
 	B = normalize(cross(T, N));
 
-	mat4 biasMatrix = mat4(
-		0.5, 0.0, 0.0, 0.0,
-		0.0, 0.5, 0.0, 0.0,
-		0.0, 0.0, 0.5, 0.0,
-		0.5, 0.5, 0.5, 1.0
-	);
+	if (dirLight.hasShadowMap) {
+		mat4 biasMatrix = mat4(
+			0.5, 0.0, 0.0, 0.0,
+			0.0, 0.5, 0.0, 0.0,
+			0.0, 0.0, 0.5, 0.0,
+			0.5, 0.5, 0.5, 1.0
+		);
 
-	fragPosLightSpace = biasMatrix * lightSpace * vec4(fragPos, 1.0);
+		fragPosLightSpace = biasMatrix * lightSpace * vec4(fragPos, 1.0);
+	}
 	viewPos = eyePos;
 }

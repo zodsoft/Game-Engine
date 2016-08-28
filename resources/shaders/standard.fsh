@@ -20,6 +20,9 @@ struct Material {
 struct DirectionalLight {
     vec3 direction;
     vec3 color;
+
+	bool hasShadowMap;
+	sampler2DShadow shadowMap;
 };
 
 struct PointLight {
@@ -54,7 +57,6 @@ uniform vec3 cameraPos;
 uniform samplerCube skybox;
 uniform float exposure;
 uniform vec3 eyePos;
-uniform sampler2DShadow shadowMap;
 
 vec2 poissonDisk[16] = vec2[](
    vec2( -0.94201624, -0.39906216 ),
@@ -84,36 +86,41 @@ float random(vec3 seed, int i){
 
 float ShadowCalculation(vec4 fragPosLightSpace)
 {
-    // Get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
-    //float closestDepth = texture(shadowMap, vec3(fragPosLightSpace.xy, (fragPosLightSpace.z)/fragPosLightSpace.w-0.0005));
-    // Get depth of current fragment from light's perspective
-	float visibility = 1.0;
-	float bias = 0.002;
+	if (dirLight.hasShadowMap) {
+	    // Get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+	    //float closestDepth = texture(shadowMap, vec3(fragPosLightSpace.xy, (fragPosLightSpace.z)/fragPosLightSpace.w-0.0005));
+	    // Get depth of current fragment from light's perspective
+		float visibility = 1.0;
+		float bias = 0.002;
 
-	for (int i=0;i<4;i++){
-		// use either :
-		//  - Always the same samples.
-		//    Gives a fixed pattern in the shadow, but no noise
-		int index = i;
-		//  - A random sample, based on the pixel's screen location.
-		//    No banding, but the shadow moves with the camera, which looks weird.
-		//int index = int(16.0*random(gl_FragCoord.xyy, i))%16;
-		//  - A random sample, based on the pixel's position in world space.
-		//    The position is rounded to the millimeter to avoid too much aliasing
-		// int index = int(16.0*random(floor(fragPos.xyz*1000.0), i))%16;
+		for (int i=0;i<4;i++){
+			// use either :
+			//  - Always the same samples.
+			//    Gives a fixed pattern in the shadow, but no noise
+			int index = i;
+			//  - A random sample, based on the pixel's screen location.
+			//    No banding, but the shadow moves with the camera, which looks weird.
+			//int index = int(16.0*random(gl_FragCoord.xyy, i))%16;
+			//  - A random sample, based on the pixel's position in world space.
+			//    The position is rounded to the millimeter to avoid too much aliasing
+			// int index = int(16.0*random(floor(fragPos.xyz*1000.0), i))%16;
 
-		// being fully in the shadow will eat up 4*0.2 = 0.8
-		// 0.2 potentially remain, which is quite dark.
-		visibility -= 0.2*(1.0-texture( shadowMap, vec3(fragPosLightSpace.xy + poissonDisk[index]/3000.0, (fragPosLightSpace.z)/fragPosLightSpace.w-bias) ));
+			// being fully in the shadow will eat up 4*0.2 = 0.8
+			// 0.2 potentially remain, which is quite dark.
+			visibility -= 0.2*(1.0-texture( dirLight.shadowMap, vec3(fragPosLightSpace.xy + poissonDisk[index]/3000.0, (fragPosLightSpace.z)/fragPosLightSpace.w-bias) ));
+		}
+		//visibility = texture(shadowMap, vec3(fragPosLightSpace.xy, (fragPosLightSpace.z)/fragPosLightSpace.w-bias));
+
+		/*if(projCoords.z > 1.0)
+	        shadow = 0.0;
+
+	    return clamp(1 - shadow, ambient, 1.0);*/
+
+		return visibility;
 	}
-	//visibility = texture(shadowMap, vec3(fragPosLightSpace.xy, (fragPosLightSpace.z)/fragPosLightSpace.w-bias));
-
-	/*if(projCoords.z > 1.0)
-        shadow = 0.0;
-
-    return clamp(1 - shadow, ambient, 1.0);*/
-
-	return visibility;
+	else {
+		return 1.0;
+	}
 }
 
 vec3 calcDirectionalLight(DirectionalLight light, vec3 diffuseTex, vec3 specularTex, vec3 normal) {
