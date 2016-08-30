@@ -55,6 +55,7 @@ uniform PointLight[MAX_POINT_LIGHTS] pointLights;
 uniform float ambient;
 uniform vec3 cameraPos;
 uniform samplerCube skybox;
+uniform bool hasSkybox;
 uniform float exposure;
 uniform vec3 eyePos;
 
@@ -215,24 +216,26 @@ void main() {
 	lightCombined = clamp(lightCombined, ambient, 100.0f);
 
 
-  //color = vec4(reflectcolor, 1.0f);
+	//color = vec4(reflectcolor, 1.0f);
 
-  vec3 I = normalize(fragPos - eyePos);
-  vec3 R = reflect(I, normalize(normalTex));
-  vec3 reflectColor = texture(skybox, R).rgb;
+	if (hasSkybox) {
+	  vec3 I = normalize(fragPos - eyePos);
+	  vec3 R = reflect(I, normalize(normalTex));
+	  vec3 reflectColor = texture(skybox, R).rgb;
 
-  diffuseTex = mix(diffuseTex, reflectColor, clamp((length(specularTex)), 0, 1));
+	  diffuseTex = mix(diffuseTex, reflectColor, clamp((length(specularTex)), 0, 1));
+	}
 
-  color = vec4(lightCombined * diffuseTex, 1.0f);
-  //color = vec4(normalTex, 1.0f);
-  //color = vec4(calcDirectionalLight(dirLight, diffuseTex, specularTex), 1.0f);
+	color = vec4(lightCombined * diffuseTex, 1.0f);
+	//color = vec4(normalTex, 1.0f);
+	//color = vec4(calcDirectionalLight(dirLight, diffuseTex, specularTex), 1.0f);
 
-  // Check whether fragment output is higher than threshold, if so output as brightness color
-  float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
-  if(brightness > 1.5 / exposure)
-  	brightColor = vec4(color.rgb, 1.0);
-  else
-	brightColor = vec4(0, 0, 0, 1.0);
+  	// Check whether fragment output is higher than threshold, if so output as brightness color
+  	float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+  	if(brightness > 1.5 / exposure)
+  		brightColor = vec4(color.rgb, 1.0);
+  	else
+		brightColor = vec4(0, 0, 0, 1.0);
 
 	float lumaThresh = 0.8;
 	brightColor = vec4(color.rgb * clamp( luma(color.rgb) - lumaThresh, 0.0, 1.0 ) * (1.0 / (1.0 - lumaThresh)), 1.0);
