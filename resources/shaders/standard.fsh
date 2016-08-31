@@ -221,7 +221,7 @@ void main() {
 	if (hasSkybox) {
 	  vec3 I = normalize(fragPos - eyePos);
 	  vec3 R = reflect(I, normalize(normalTex));
-	  vec3 reflectColor = texture(skybox, R).rgb;
+	  vec3 reflectColor = textureLod(skybox, R, 3).rgb;
 
 	  diffuseTex = mix(diffuseTex, reflectColor, clamp((length(specularTex)), 0, 1));
 	}
