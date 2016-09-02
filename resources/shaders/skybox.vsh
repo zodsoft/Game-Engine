@@ -13,7 +13,7 @@ void main()
 	newview[3][1] = 0;
 	newview[3][2] = 0;
 
-    vec4 pos = projection * newview * vec4(position, 1.0);  
+    vec4 pos = projection * newview * vec4(position, 1.0);
     gl_Position = pos;
     TexCoords = position;
-}  
+}

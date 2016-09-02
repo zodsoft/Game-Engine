@@ -15,5 +15,6 @@ void main()
     color = vec4(textureLod(skybox, TexCoords, 0).rgb, 1);
 
     float lumaThresh = 0.98;
-	brightColor = vec4(color.rgb * clamp( luma(color.rgb) - lumaThresh, 0.0, 1.0 ) * (1.0 / (1.0 - lumaThresh)), 1.0);
+	//brightColor = vec4(color.rgb * clamp( luma(color.rgb) - lumaThresh, 0.0, 1.0 ) * (1.0 / (1.0 - lumaThresh)), 1.0);
+	brightColor = vec4(0, 0, 0, 0);
 }
