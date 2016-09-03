@@ -3,18 +3,20 @@
 #define MAX_POINT_LIGHTS 100
 
 struct Material {
-	sampler2D diffuse;
-	vec3 diffuseColor;
+	sampler2D diffuseTex;
+	vec3 diffuse;
 	bool diffuseTextured;
 
-	sampler2D normal;
+	sampler2D normalTex;
 	bool normalTextured;
 
-	sampler2D specular;
-	vec3 specularColor;
-	bool specularTextured;
+	sampler2D roughnessTex;
+	float roughness;
+	bool roughnessTextured;
 
-	float shininess;
+	sampler2D metallicTex;
+	float metallic;
+	bool metallicTextured;
 };
 
 struct DirectionalLight {
@@ -59,6 +61,8 @@ uniform bool hasSkybox;
 uniform float exposure;
 uniform vec3 eyePos;
 
+const float kPi = 3.14159265;
+
 vec2 poissonDisk[16] = vec2[](
    vec2( -0.94201624, -0.39906216 ),
    vec2( 0.94558609, -0.76890725 ),
@@ -78,44 +82,17 @@ vec2 poissonDisk[16] = vec2[](
    vec2( 0.14383161, -0.14100790 )
 );
 
-// Returns a random number based on a vec3 and an int.
-float random(vec3 seed, int i){
-	vec4 seed4 = vec4(seed,i);
-	float dot_product = dot(seed4, vec4(12.9898,78.233,45.164,94.673));
-	return fract(sin(dot_product) * 43758.5453);
-}
-
 float ShadowCalculation(vec4 fragPosLightSpace)
 {
 	if (dirLight.hasShadowMap) {
-	    // Get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
-	    //float closestDepth = texture(shadowMap, vec3(fragPosLightSpace.xy, (fragPosLightSpace.z)/fragPosLightSpace.w-0.0005));
-	    // Get depth of current fragment from light's perspective
 		float visibility = 1.0;
 		float bias = 0.002;
 
 		for (int i=0;i<4;i++){
-			// use either :
-			//  - Always the same samples.
-			//    Gives a fixed pattern in the shadow, but no noise
 			int index = i;
-			//  - A random sample, based on the pixel's screen location.
-			//    No banding, but the shadow moves with the camera, which looks weird.
-			//int index = int(16.0*random(gl_FragCoord.xyy, i))%16;
-			//  - A random sample, based on the pixel's position in world space.
-			//    The position is rounded to the millimeter to avoid too much aliasing
-			// int index = int(16.0*random(floor(fragPos.xyz*1000.0), i))%16;
 
-			// being fully in the shadow will eat up 4*0.2 = 0.8
-			// 0.2 potentially remain, which is quite dark.
 			visibility -= 0.2*(1.0-texture( dirLight.shadowMap, vec3(fragPosLightSpace.xy + poissonDisk[index]/3000.0, (fragPosLightSpace.z)/fragPosLightSpace.w-bias) ));
 		}
-		//visibility = texture(shadowMap, vec3(fragPosLightSpace.xy, (fragPosLightSpace.z)/fragPosLightSpace.w-bias));
-
-		/*if(projCoords.z > 1.0)
-	        shadow = 0.0;
-
-	    return clamp(1 - shadow, ambient, 1.0);*/
 
 		return visibility;
 	}
@@ -124,26 +101,26 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 	}
 }
 
-vec3 calcDirectionalLight(DirectionalLight light, vec3 diffuseTex, vec3 specularTex, vec3 normal) {
+vec3 calcDirectionalLight(DirectionalLight light, vec3 diffuse, float roughness, vec3 normal) {
 	float shadow = ShadowCalculation(fragPosLightSpace);
 
 	//diffuse
 	vec3 norm = normalize(normal);
 	vec3 lightDir = normalize(-light.direction);
-	float diff = max(dot(norm, lightDir), 0.0);
-	vec3 diffuse = light.color * diff * shadow;
-
-	//specular
 	vec3 viewDir = normalize(viewPos - fragPos);
-	vec3 reflectDir = reflect(-lightDir, norm);
-	float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-	vec3 specular = spec * light.color * specularTex * diff * shadow;
+	float diff = max(dot(norm, lightDir), 0.0);
 
-    vec3 result = (diffuse + specular);
+	float shininess = (clamp((1-roughness), 0, 1) * 64) + 1;
+
+	//blinn phong
+	vec3 halfwayDir = normalize(lightDir + viewDir);
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);
+
+    vec3 result = (light.color * diff * shadow + spec * light.color * diff * shadow);
     return result;
 }
 
-vec3 calcPointLight(PointLight light, vec3 diffuseTex, vec3 specularTex, vec3 normal) {
+vec3 calcPointLight(PointLight light, vec3 diffuse, float roughness, vec3 normal) {
 	float distance = length(light.position - fragPos);
 	float attenuation = 1.0f / (1.0f + light.linear * distance + light.quadratic * (distance * distance));
 
@@ -151,15 +128,14 @@ vec3 calcPointLight(PointLight light, vec3 diffuseTex, vec3 specularTex, vec3 no
 	vec3 norm = normalize(normal);
 	vec3 lightDir = normalize(light.position - fragPos);
 	float diff = max(dot(norm, lightDir), 0.0f);
-	vec3 diffuse = light.color * diff;
-
-	//specular
 	vec3 viewDir = normalize(viewPos - fragPos);
-	vec3 reflectDir = reflect(-lightDir, norm);
-	float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-	vec3 specular = spec * light.color * specularTex;
+	float shininess = (clamp((1-roughness), 0, 1) * 64) + 1;
 
-    vec3 result = (diffuse + specular) * attenuation;
+	//blinn phong
+	vec3 halfwayDir = normalize(lightDir + viewDir);
+    float spec = pow(max(dot(normal, halfwayDir), 0.0), shininess);
+
+    vec3 result = (light.color * diff * 1.0 + spec * light.color) * attenuation;
     return result;
 }
 
@@ -171,20 +147,27 @@ const float blurSizeH = 1.0 / 300.0;
 const float blurSizeV = 1.0 / 200.0;
 
 void main() {
-	vec3 diffuseTex = vec3(0, 0, 0);
-	vec3 specularTex = vec3(0, 0, 0);
-	vec3 normalTex = vec3(0, 0, 0);
+	vec3 diffuse = vec3(0, 0, 0);
+	float roughness = 0;
+	float metallic = 0;
+	vec3 normal = vec3(0, 0, 0);
 
 	if (material.diffuseTextured) {
-		diffuseTex = texture(material.diffuse, texCoord).rgb;
+		diffuse = texture(material.diffuseTex, texCoord).rgb;
 	} else {
-		diffuseTex = material.diffuseColor;
+		diffuse = material.diffuse;
 	}
 
-	if (material.specularTextured) {
-		specularTex = texture(material.specular, texCoord).rgb;
+	if (material.roughnessTextured) {
+		roughness = length(texture(material.roughnessTex, texCoord).rgb);
 	} else {
-		specularTex = material.specularColor;
+		roughness = material.roughness;
+	}
+
+	if (material.metallicTextured) {
+		metallic = length(texture(material.metallicTex, texCoord).rgb);
+	} else {
+		metallic = material.metallic;
 	}
 
 	if (material.normalTextured) {
@@ -192,43 +175,42 @@ void main() {
 
 		mat3 TBN = mat3(T, B, N);
 
-		normalTex = texture(material.normal, texCoord).rgb;
-		normalTex = normalize(normalTex * 2.0 - 1.0);
-		normalTex = normalize(TBN * normalTex);
-
-		//normalTex = TBN[0];
+		normal = texture(material.normalTex, texCoord).rgb;
+		normal = normalize(normal * 2.0 - 1.0);
+		normal = normalize(TBN * normal);
 	} else {
-		normalTex = fragNormal;
+		normal = fragNormal;
 	}
 
-	//vec3 lightCombined = calcPointLight(pointLights[0], diffuseTex, specularTex);
 	vec3 lightCombined = vec3(0, 0, 0);
 
 	for (int i = 0; i < pointLightCount; i++) {
 		if (i < MAX_POINT_LIGHTS) {
-			lightCombined += calcPointLight(pointLights[i], diffuseTex, specularTex, normalTex);
+			lightCombined += calcPointLight(pointLights[i], diffuse, roughness, normal);
 		}
 	}
 
 	float shadow = ShadowCalculation(fragPosLightSpace);
-	lightCombined += calcDirectionalLight(dirLight, diffuseTex, specularTex, normalTex);
+	lightCombined += calcDirectionalLight(dirLight, diffuse, roughness, normal);
 
 	lightCombined = clamp(lightCombined, ambient, 100.0f);
 
 
 	//color = vec4(reflectcolor, 1.0f);
 
+	vec3 reflectColor;
+	float fresnel = 0;
 	if (hasSkybox) {
 	  vec3 I = normalize(fragPos - eyePos);
-	  vec3 R = reflect(I, normalize(normalTex));
-	  vec3 reflectColor = texture(skybox, R).rgb;
+	  vec3 R = reflect(I, normalize(normal));
+	  fresnel = dot(I, R);
+	  reflectColor = textureLod(skybox, R, roughness * 6).rgb;
 
-	  diffuseTex = mix(diffuseTex, reflectColor, clamp((length(specularTex)), 0, 1));
+	  diffuse = mix(diffuse, reflectColor * diffuse, clamp(metallic, 0, 1));
 	}
 
-	color = vec4(lightCombined * diffuseTex, 1.0f);
-	//color = vec4(normalTex, 1.0f);
-	//color = vec4(calcDirectionalLight(dirLight, diffuseTex, specularTex), 1.0f);
+	color = vec4(lightCombined * diffuse, 1.0f);
+	//color = vec4(vec3(metallic), 1.0f);
 
   	// Check whether fragment output is higher than threshold, if so output as brightness color
   	float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
@@ -237,7 +219,7 @@ void main() {
   	else
 		brightColor = vec4(0, 0, 0, 1.0);
 
-	float lumaThresh = 0.8;
+	float lumaThresh = 0.9;
 	brightColor = vec4(color.rgb * clamp( luma(color.rgb) - lumaThresh, 0.0, 1.0 ) * (1.0 / (1.0 - lumaThresh)), 1.0);
 
 	hdrColor = vec4(0, 0, 0, 1.0);
