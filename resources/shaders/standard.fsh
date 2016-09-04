@@ -58,6 +58,10 @@ uniform float ambient;
 uniform vec3 cameraPos;
 uniform samplerCube skybox;
 uniform bool hasSkybox;
+
+uniform samplerCube irradiance;
+uniform bool hasIrradiance;
+
 uniform float exposure;
 uniform vec3 eyePos;
 
