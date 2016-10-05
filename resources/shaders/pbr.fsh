@@ -95,7 +95,7 @@ float ShadowCalculation(vec4 fragPosLightSpace)
 			int index = i;
 			visibility -= 0.25*(1.0-texture( dirLight.shadowMap, vec3(fragPosLightSpace.xy + poissonDisk[index]/3000.0, (fragPosLightSpace.z)/fragPosLightSpace.w-bias) ));
 		}
-		return visibility;
+		return clamp(visibility, 0, 1);
 	}
 	else {
 		return 1.0;
@@ -113,7 +113,8 @@ vec3 directionalSpecular(DirectionalLight light, vec3 normal, float roughness, f
 }
 
 vec3 directionalDiffuse(DirectionalLight light, vec3 normal, float visibility) {
-	return dot(normal, -light.direction) * light.color * visibility;
+	return clamp(dot(normal, -light.direction) * light.color * visibility, 0, 1000);
+	//return light.color * visibility;
 }
 
 vec3 pointSpecular(PointLight light, vec3 normal, float roughness, float visibility) {
@@ -129,7 +130,7 @@ vec3 pointSpecular(PointLight light, vec3 normal, float roughness, float visibil
 
 vec3 pointDiffuse(PointLight light, vec3 normal, float visibility) {
 	vec3 direction = normalize(light.position - fragPos);
-	return max(dot(normal, direction), 0) * light.color * visibility;
+	return clamp(max(dot(normal, direction), 0) * light.color * visibility, 0, 1000);
 }
 
 void main() {
@@ -181,7 +182,7 @@ void main() {
 	  diffuse += textureLod(irradiance, normal, 0).rgb;
 	}
 	else {
-		diffuse += albedo;
+		diffuse += ambient;
 	}
 
 	//calculate the one directional light
