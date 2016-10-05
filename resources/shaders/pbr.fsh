@@ -175,7 +175,7 @@ void main() {
 	if (hasSkybox) {
 	  vec3 I = normalize(fragPos - eyePos);
 	  vec3 R = reflect(I, normal);
-	  specular += textureLod(skybox, R, roughness * 10).rgb;
+	  specular += textureLod(skybox, R, roughness * 10).rgb * 4; // hack: multiply by 4 to compensate for brightness loss later in tonemapping
 	}
 
     if (hasIrradiance) {
