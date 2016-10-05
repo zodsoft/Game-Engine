@@ -23,20 +23,20 @@ vec3 toUncharted2(vec3 _x)
 void main()
 {
     vec4 hdrColor = texture(screenTexture, TexCoords);
-    vec3 combined;
+    vec4 combined;
     vec4 bloomColor = vec4(0);
     if (doBloom) {
         vec4 bloomColor = texture(bloomTexture, TexCoords);
 
-        combined = hdrColor.rgb + bloomColor.rgb; // additive blending
+        combined = hdrColor + bloomColor; // additive blending
     }
     else {
-        combined = hdrColor.rgb;
+        combined = hdrColor;
     }
 
     //vignette
     float vignette = clamp(1-((length(screenPos) - 1) * 1), 0, 1);
 
-    color = vec4(toUncharted2(combined * vignette), hdrColor.a);
+    color = vec4(toUncharted2(combined.rgb * vignette), hdrColor.a);
     //color = vec4(texture(hdrTexture, TexCoords).rgb, 1.0f);
 }
