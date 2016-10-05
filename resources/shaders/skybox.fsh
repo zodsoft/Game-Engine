@@ -16,5 +16,5 @@ void main()
 
     float lumaThresh = 0.98;
 	//brightColor = vec4(color.rgb * clamp( luma(color.rgb) - lumaThresh, 0.0, 1.0 ) * (1.0 / (1.0 - lumaThresh)), 1.0);
-	brightColor = vec4(0, 0, 0, 0);
+	brightColor = vec4(0, 0, 0, 2);
 }

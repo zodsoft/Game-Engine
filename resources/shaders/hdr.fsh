@@ -24,9 +24,11 @@ void main()
 {
     vec4 hdrColor = texture(screenTexture, TexCoords);
     vec3 combined;
+    vec4 bloomColor = vec4(0);
     if (doBloom) {
-        vec3 bloomColor = texture(bloomTexture, TexCoords).rgb;
-        combined = hdrColor.rgb + bloomColor; // additive blending
+        vec4 bloomColor = texture(bloomTexture, TexCoords);
+
+        combined = hdrColor.rgb + bloomColor.rgb; // additive blending
     }
     else {
         combined = hdrColor.rgb;
@@ -38,8 +40,9 @@ void main()
     // reinhard
     // vec3 result = hdrColor / (hdrColor + vec3(1.0));
     // exposure
+
     vec3 result = vec3(1.0) - exp(-combined * exposure);
 
-    color = vec4(combined * vignette, hdrColor.a);
+    color = vec4(result, 1);
     //color = vec4(texture(hdrTexture, TexCoords).rgb, 1.0f);
 }
