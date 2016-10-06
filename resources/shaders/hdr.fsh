@@ -38,5 +38,4 @@ void main()
     float vignette = clamp(1-((length(screenPos) - 1) * 1), 0, 1);
 
     color = vec4(toUncharted2(combined.rgb * vignette), 1.0);
-    //color = vec4(texture(hdrTexture, TexCoords).rgb, 1.0f);
 }

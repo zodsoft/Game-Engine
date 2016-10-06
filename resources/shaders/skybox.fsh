@@ -14,7 +14,10 @@ void main()
 {
     color = vec4(textureLod(skybox, TexCoords, 0).rgb * 4, 1);
 
-    float lumaThresh = 0.98;
-	//brightColor = vec4(color.rgb * clamp( luma(color.rgb) - lumaThresh, 0.0, 1.0 ) * (1.0 / (1.0 - lumaThresh)), 1.0);
-	brightColor = vec4(0, 0, 0, 1);
+	// Check whether fragment output is higher than threshold, if so output as brightness color
+	float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
+	if(brightness > 4)
+		brightColor = vec4(color.rgb, 1.0);
+	else
+		brightColor = vec4(0, 0, 0, 1.0);
 }
