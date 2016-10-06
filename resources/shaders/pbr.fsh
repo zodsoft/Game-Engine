@@ -85,6 +85,11 @@ vec2 poissonDisk[16] = vec2[](
 
 const float kPi = 3.14159265;
 
+vec3 FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
+{
+	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(1.0 - cosTheta, 5.0);
+}
+
 float ShadowCalculation(vec4 fragPosLightSpace)
 {
 	if (dirLight.hasShadowMap) {
@@ -117,7 +122,7 @@ vec3 directionalDiffuse(DirectionalLight light, vec3 normal, float visibility) {
 	//return light.color * visibility;
 }
 
-vec3 pointSpecular(PointLight light, vec3 normal, float roughness, float visibility) {
+vec3 pointSpecular(PointLight light, vec3 normal, float roughness) {
 	//blinn phong specular
 	float kShininess = (1-roughness) * 128;
 	vec3 viewDir = normalize(eyePos - fragPos);
@@ -125,12 +130,12 @@ vec3 pointSpecular(PointLight light, vec3 normal, float roughness, float visibil
 
 	float kEnergyConservation = ( 8.0 + kShininess ) / ( 8.0 * kPi );
 	vec3 halfwayDir = normalize(direction + viewDir);
-	return kEnergyConservation * pow(max(dot(normal, halfwayDir), 0.0), kShininess) * light.color * max(dot(normal, direction), 0) * visibility;
+	return kEnergyConservation * pow(max(dot(normal, halfwayDir), 0.0), kShininess) * light.color * max(dot(normal, direction), 0);
 }
 
-vec3 pointDiffuse(PointLight light, vec3 normal, float visibility) {
+vec3 pointDiffuse(PointLight light, vec3 normal) {
 	vec3 direction = normalize(light.position - fragPos);
-	return clamp(max(dot(normal, direction), 0) * light.color * visibility, 0, 1000);
+	return clamp(max(dot(normal, direction), 0) * light.color, 0, 1000);
 }
 
 void main() {
@@ -175,6 +180,8 @@ void main() {
 	if (hasSkybox) {
 	  vec3 I = normalize(fragPos - eyePos);
 	  vec3 R = reflect(I, normal);
+
+
 	  specular += textureLod(skybox, R, roughness * 10).rgb * 4; // hack: multiply by 4 to compensate for brightness loss later in tonemapping
 	}
 
@@ -195,10 +202,11 @@ void main() {
 		if (i < MAX_POINT_LIGHTS) {
 			PointLight light = pointLights[i];
 			float distance = length(light.position - fragPos);
+
 			float attenuation = 1.0f / (1.0f + light.linear * distance + light.quadratic * (distance * distance));
 
-			diffuse += pointDiffuse(light, normal, attenuation);
-			specular += pointSpecular(light, normal, roughness, attenuation);
+			diffuse += pointDiffuse(light, normal) * attenuation;
+			specular += pointSpecular(light, normal, roughness) * attenuation;
 		}
 	}
 
