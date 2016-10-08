@@ -160,7 +160,7 @@ void main() {
 	if (material.metallicTextured) {
 		metallic = (texture(material.metallicTex, texCoord).r * 0.8) + 0.2;
 	} else {
-		metallic = (material.metallic * 0.8) + 0.2;
+		metallic = material.metallic;
 	}
 
 	if (material.normalTextured) {
@@ -182,7 +182,7 @@ void main() {
 	  vec3 R = reflect(I, normal);
 
 
-	  specular += textureLod(skybox, R, roughness * 10).rgb * 4; // hack: multiply by 4 to compensate for brightness loss later in tonemapping
+	  specular += textureLod(skybox, R, roughness * 10).rgb * 2.2;
 	}
 
     if (hasIrradiance) {
@@ -212,11 +212,11 @@ void main() {
 
 	//output final color
 	color = vec4(albedo * mix(diffuse, specular, metallic), 1.0);
-	//color = vec3(abledo, 1.0);
+	//color = vec4(albedo, 1.0);
 
 	// Check whether fragment output is higher than threshold, if so output as brightness color
 	float brightness = dot(color.rgb, vec3(0.2126, 0.7152, 0.0722));
-	if(brightness > 800)
+	if(brightness > 8)
 		brightColor = vec4(color.rgb, 1.0);
 	else
 		brightColor = vec4(0, 0, 0, 1.0);

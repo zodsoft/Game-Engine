@@ -35,7 +35,7 @@ void main()
     }
 
     //vignette
-    float vignette = clamp(1-((length(screenPos) - 1) * 1), 0, 1);
+    float vignette = clamp(0.5-((length(screenPos) - 1) * 1.1), 0, 1);
 
-    color = vec4(toUncharted2(combined.rgb * vignette), 1.0);
+    color = vec4(toUncharted2(combined.rgb) * vignette, 1.0);
 }
