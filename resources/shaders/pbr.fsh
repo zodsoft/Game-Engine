@@ -186,7 +186,7 @@ void main() {
 	}
 
     if (hasIrradiance) {
-	  diffuse += textureLod(irradiance, normal, 0).rgb;
+	  diffuse += textureLod(irradiance, normal, 0).rgb * 2;
 	}
 	else {
 		diffuse += ambient;
@@ -220,4 +220,8 @@ void main() {
 		brightColor = vec4(color.rgb, 1.0);
 	else
 		brightColor = vec4(0, 0, 0, 1.0);
+
+
+	float gamma = 2.2;
+	color.rgb = pow(color.rgb, vec3(1.0/gamma));
 }
