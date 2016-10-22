@@ -34,7 +34,7 @@ void main() {
 
 	fragPos = vec3(model * vec4(position, 1.0f));
 	fragNormal = mat3(transpose(inverse(model))) * vertexNormal;
-	texCoord = vec2(uv.x, 1 - uv.y);
+	texCoord = vec2(uv.x, uv.y);
 
 	T = normalize(vec3(model * vec4(tangent,   0.0)));
     N = normalize(vec3(model * vec4(vertexNormal,    0.0)));

@@ -3,34 +3,18 @@ out vec4 FragColor;
 in vec2 TexCoords;
 
 uniform sampler2D image;
-
+uniform vec2 offset;
 uniform bool horizontal;
 
 uniform float weight[5] = float[] (0.227027, 0.1945946, 0.1216216, 0.054054, 0.016216);
 
-const float blurSizeH = 1.0 / 1280.0;
-const float blurSizeV = 1.0 / 720.0;
-
 void main()
 {
-    vec2 tex_offset = 1.0 / textureSize(image, 0); // gets size of single texel
-    vec3 result = texture(image, TexCoords).rgb * weight[0]; // current fragment's contribution
-    if(horizontal)
-    {
-        for(int i = 1; i < 5; ++i)
-        {
-            result += texture(image, TexCoords + vec2(tex_offset.x * i, 0.0)).rgb * weight[i];
-            result += texture(image, TexCoords - vec2(tex_offset.x * i, 0.0)).rgb * weight[i];
-        }
-    }
-    else
-    {
-        for(int i = 1; i < 5; ++i)
-        {
-            result += texture(image, TexCoords + vec2(0.0, tex_offset.y * i)).rgb * weight[i];
-            result += texture(image, TexCoords - vec2(0.0, tex_offset.y * i)).rgb * weight[i];
-        }
-    }
-
-    FragColor = vec4(result, 1.0);
+    vec4 c = vec4(0);
+    c += 3.0 * texture2D(image, TexCoords - offset - offset);
+    c += 5.0 * texture2D(image, TexCoords - offset);
+    c += 6.0 * texture2D(image, TexCoords);
+    c += 5.0 * texture2D(image, TexCoords + offset);
+    c += 3.0 * texture2D(image, TexCoords + offset + offset);
+    FragColor = vec4((c / 22.0).rgb, 1.0);
 }
