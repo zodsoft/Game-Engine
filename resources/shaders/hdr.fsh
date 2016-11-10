@@ -34,17 +34,12 @@ float vignette() {
 
 void main()
 {
-    vec4 hdrColor = texture(screenTexture, TexCoords);
+    vec3 hdrColor = texture(screenTexture, TexCoords).rgb;
     vec4 combined;
-    vec4 bloomColor = vec4(0);
+    vec3 bloomColor = vec3(0);
     if (doBloom) {
-        vec4 bloomColor = texture(bloomTexture1, TexCoords) + texture(bloomTexture2, TexCoords)+ texture(bloomTexture3, TexCoords);
-
-        combined = hdrColor + bloomColor; // additive blending
-    }
-    else {
-        combined = hdrColor;
+        bloomColor = texture(bloomTexture1, TexCoords).rgb + texture(bloomTexture2, TexCoords).rgb + texture(bloomTexture3, TexCoords).rgb;
     }
 
-    color = vec4(Uncharted2Tonemap(combined.rgb) * vignette(), 1.0);
+    color = vec4(Uncharted2Tonemap(hdrColor) + bloomColor, 1.0);
 }
